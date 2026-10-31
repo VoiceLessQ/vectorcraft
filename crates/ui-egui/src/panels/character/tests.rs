@@ -508,6 +508,23 @@ fn digits_show_with_the_indic_options() {
     assert!(shown(&mut app));
 }
 
+/// The Language submenu checks the language of the selected type, and setting one reaches it.
+#[test]
+fn language_checks_the_language_of_the_selection() {
+    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    app.run("file.new", json!({"width": 300, "height": 200})).unwrap();
+    let id = app.run("text.create", json!({"x": 20, "y": 50, "text": "fikir"})).unwrap()["id"].as_u64().unwrap();
+    app.run("select.set", json!({"ids": [id]})).unwrap();
+    assert!(crate::tests_labels::painted_text(&mut app, menu).contains("Language"));
+    let checked = |app: &mut VectorcraftApp| {
+        let text = crate::tests_labels::painted_text(app, language_items);
+        text.lines().filter_map(|l| l.strip_prefix("✓ ")).map(str::to_string).collect::<Vec<_>>()
+    };
+    assert_eq!(checked(&mut app), ["Default"]);
+    app.run("text.setFormat", json!({"language": "tr"})).unwrap();
+    assert_eq!(checked(&mut app), ["Turkish"]);
+}
+
 /// Character Direction is in the panel menu with the Middle Eastern (Indic) options, beside
 /// Digits. Its submenu checks the direction the characters the panel acts on share: the
 /// selected type's, or the range the Type tool has selected. It checks no item when they differ.

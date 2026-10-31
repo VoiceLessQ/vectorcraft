@@ -168,6 +168,43 @@ pub const LANGUAGES: &[(&str, Quotes)] = &[
     ("Chinese", Quotes { double: ['“', '”'], single: ['‘', '’'] }),
 ];
 
+/// The BCP 47 tag of each [`LANGUAGES`] entry: what text in that language is shaped in.
+pub const LANGUAGE_TAGS: &[(&str, &str)] = &[
+    ("English: USA", "en-US"),
+    ("English: UK", "en-GB"),
+    ("German", "de"),
+    ("German: Swiss", "de-CH"),
+    ("French", "fr"),
+    ("Italian", "it"),
+    ("Spanish", "es"),
+    ("Catalan", "ca"),
+    ("Portuguese", "pt"),
+    ("Dutch", "nl"),
+    ("Danish", "da"),
+    ("Swedish", "sv"),
+    ("Finnish", "fi"),
+    ("Norwegian", "no"),
+    ("Polish", "pl"),
+    ("Czech", "cs"),
+    ("Russian", "ru"),
+    ("Turkish", "tr"),
+    ("Japanese", "ja"),
+    ("Chinese", "zh"),
+];
+
+/// Whether `tag` has the form of a BCP 47 tag: letters first, then subtags of letters and digits,
+/// joined by hyphens. Tags come from files, so length is bounded too.
+pub fn is_language_tag(tag: &str) -> bool {
+    tag.len() <= 35
+        && tag.split('-').enumerate().all(|(i, sub)| {
+            if i == 0 {
+                (2..=8).contains(&sub.len()) && sub.bytes().all(|b| b.is_ascii_alphabetic())
+            } else {
+                (1..=8).contains(&sub.len()) && sub.bytes().all(|b| b.is_ascii_alphanumeric())
+            }
+        })
+}
+
 /// The quotes of a [`LANGUAGES`] entry (case-insensitive).
 pub fn language_quotes(language: &str) -> Option<Quotes> {
     LANGUAGES.iter().find(|(l, _)| l.eq_ignore_ascii_case(language)).map(|(_, q)| *q)
@@ -315,9 +352,37 @@ impl DocSetup {
     }
 }
 
+impl DocSetup {
+    /// The language new text takes: the document's, unless that is the default (#4940).
+    pub fn new_text_language(&self) -> Option<String> {
+        let default = LANGUAGES.first().is_some_and(|(l, _)| l.eq_ignore_ascii_case(&self.language));
+        let (_, tag) = LANGUAGE_TAGS.iter().find(|(l, _)| !default && l.eq_ignore_ascii_case(&self.language))?;
+        Some((*tag).to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_language_has_a_tag() {
+        for (name, _) in LANGUAGES {
+            let tag = LANGUAGE_TAGS.iter().find(|(l, _)| l == name).map(|(_, t)| *t);
+            assert!(tag.is_some_and(is_language_tag), "{name}");
+        }
+        assert_eq!(LANGUAGE_TAGS.len(), LANGUAGES.len());
+    }
+
+    #[test]
+    fn new_text_takes_the_language_of_the_document_unless_it_is_the_default() {
+        let mut s = DocSetup::default();
+        assert_eq!(s.new_text_language(), None);
+        s.language = "Turkish".into();
+        assert_eq!(s.new_text_language().as_deref(), Some("tr"));
+        s.language = "Klingon".into();
+        assert_eq!(s.new_text_language(), None);
+    }
 
     #[test]
     fn quotes_open_and_close_by_context() {

@@ -1234,6 +1234,59 @@ fn no_break_is_a_character_attribute_saved_only_when_on() {
     assert!(runs(&s).iter().all(|r| !r.style.no_break));
 }
 
+/// Language (Character panel menu): a character attribute, saved only when set. New text takes
+/// the document's language; text already there keeps its own (#4940).
+#[test]
+fn language_is_a_character_attribute_new_text_takes_from_the_document() {
+    let mut s = Session::new();
+    s.execute("file.new", &json!({"width": 400, "height": 400})).unwrap();
+    let id = s.execute("text.create", &json!({"x": 10, "y": 50, "text": "fikir"})).unwrap()["id"].as_u64().unwrap();
+    let style = |s: &Session, id: u64| match &s.doc().unwrap().doc.node(NodeId(id)).unwrap().kind {
+        NodeKind::Text(t) => t.runs[0].style.clone(),
+        _ => panic!("text"),
+    };
+    assert_eq!(style(&s, id).language, None);
+    assert!(serde_json::to_value(style(&s, id)).unwrap().get("language").is_none());
+    s.execute("select.set", &json!({"ids": [id]})).unwrap();
+    s.execute("text.setFormat", &json!({"language": "tr"})).unwrap();
+    assert_eq!(style(&s, id).language.as_deref(), Some("tr"));
+    assert_eq!(serde_json::to_value(style(&s, id)).unwrap()["language"], "tr");
+    s.execute("text.setRangeStyle", &json!({"id": id, "start": 0, "end": 5, "language": "default"})).unwrap();
+    assert_eq!(style(&s, id).language, None);
+    s.execute("edit.undo", &json!({})).unwrap();
+    assert_eq!(style(&s, id).language.as_deref(), Some("tr"));
+    // A value that isn't a tag is refused and changes nothing.
+    for bad in [json!("tr tr"), json!(""), json!(3), json!("x".repeat(40))] {
+        let revision = s.doc().unwrap().history.undo.len();
+        assert!(s.execute("text.setFormat", &json!({"language": bad})).is_err(), "{bad}");
+        assert_eq!(s.doc().unwrap().history.undo.len(), revision);
+    }
+    // The document's language reaches new text, not the text already there.
+    s.execute("text.setFormat", &json!({"language": "default"})).unwrap();
+    s.execute("document.setup", &json!({"language": "Turkish"})).unwrap();
+    assert_eq!(style(&s, id).language, None);
+    let new = s.execute("text.create", &json!({"x": 10, "y": 90, "text": "fi"})).unwrap()["id"].as_u64().unwrap();
+    assert_eq!(style(&s, new).language.as_deref(), Some("tr"));
+}
+
+/// A character style carries the language it was captured with.
+#[test]
+fn a_character_style_carries_the_language() {
+    let mut s = Session::new();
+    s.execute("file.new", &json!({"width": 400, "height": 400})).unwrap();
+    let id = s.execute("text.create", &json!({"x": 10, "y": 50, "text": "fikir"})).unwrap()["id"].as_u64().unwrap();
+    let other = s.execute("text.create", &json!({"x": 10, "y": 90, "text": "fi"})).unwrap()["id"].as_u64().unwrap();
+    s.execute("select.set", &json!({"ids": [id]})).unwrap();
+    s.execute("text.setFormat", &json!({"language": "tr"})).unwrap();
+    s.execute("charStyle.new", &json!({"name": "Turkish", "id": id})).unwrap();
+    s.execute("select.set", &json!({"ids": [other]})).unwrap();
+    s.execute("charStyle.apply", &json!({"name": "Turkish", "id": other})).unwrap();
+    match &s.doc().unwrap().doc.node(NodeId(other)).unwrap().kind {
+        NodeKind::Text(t) => assert_eq!(t.runs[0].style.language.as_deref(), Some("tr")),
+        _ => panic!("text"),
+    }
+}
+
 /// Digits (Character panel menu, Middle Eastern options): a character attribute, saved only
 /// when set; the text keeps the digits that were typed.
 #[test]

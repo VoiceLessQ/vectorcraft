@@ -7,7 +7,7 @@ use unicode_bidi::Level;
 use unicode_script::{Script, UnicodeScript};
 use unicode_segmentation::UnicodeSegmentation;
 
-use harfrust::{Direction, Feature, ShapeOptions, Tag, UnicodeBuffer};
+use harfrust::{Direction, Feature, Language, ShapeOptions, Tag, UnicodeBuffer};
 use skrifa::MetadataProvider;
 use skrifa::charmap::Charmap;
 use skrifa::instance::Size;
@@ -501,11 +501,13 @@ fn shapes_alike(a: &CharStyle, b: &CharStyle) -> bool {
         tate_chu_yoko,
         digits,
         no_break,
+        language,
     } = a;
     *font_family == b.font_family
         && *font_style == b.font_style
         && *font_version == b.font_version
         && *font_axes == b.font_axes
+        && *language == b.language
         && *size == b.size
         && *h_scale == b.h_scale
         && *v_scale == b.v_scale
@@ -700,6 +702,8 @@ fn shape_segment(text: &str, context: &Range<usize>, seg: &Segment, feats: &OtFe
     // Shape the segment as if all of it were in `st`, with the features `more` on top.
     let shape_in = |st: &CharStyle, more: &[Feature]| {
         let mut shaped = Shaped::default();
+        // A tag from a file that doesn't read as one is left out.
+        let language = st.language.as_deref().filter(|l| vectorcraft_doc::setup::is_language_tag(l)).and_then(Language::new);
         let Shaped { raw, proportional, vpal } = &mut shaped;
         let hb_shaped = face.hb().map(|hb| {
             let shaper = face.shaper.shaper(&hb).instance(face.instance.as_ref()).build();
@@ -720,6 +724,9 @@ fn shape_segment(text: &str, context: &Range<usize>, seg: &Segment, feats: &OtFe
                 }
                 buf.set_direction(direction);
                 buf.guess_segment_properties();
+                if let Some(language) = language.clone() {
+                    buf.set_language(language);
+                }
                 // Harfrust keeps this Unicode context for joining/positional shaping, but does not emit
                 // glyphs for it. This retains context at real style/font segmentation boundaries without
                 // shaping across those boundaries or claiming cross-style ligatures/mark attachment.

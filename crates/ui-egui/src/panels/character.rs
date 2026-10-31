@@ -1047,6 +1047,10 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
         ui.separator();
     }
     // No Break: the selected characters stay on one line.
+    // Language: what the characters are shaped in, so a font draws its forms for it.
+    ui.add_enabled_ui(has, |ui| {
+        ui.menu_button(format!("   {}", tl!("Language")), |ui| language_items(app, ui));
+    });
     let no_break = s.as_ref().is_some_and(|s| s.no_break);
     if menu_item(ui, tl!("No Break"), has, no_break) {
         format(app, json!({"noBreak": !no_break}));
@@ -1091,6 +1095,22 @@ fn fractional_widths_on(app: &VectorcraftApp) -> bool {
         return t.fractional_widths;
     }
     first_selected_text(app).is_none_or(|t| t.fractional_widths)
+}
+
+/// The Language submenu: Default (no language), then the Document Setup languages. As in
+/// [`char_direction_items`], the language the characters share is checked, and a caret with no
+/// characters selected disables the items.
+fn language_items(app: &mut VectorcraftApp, ui: &mut Ui) {
+    let language = shared(app, |s| s.language.clone());
+    let enabled = text_editing(app).is_none_or(|(_, a, b)| b > a);
+    if menu_item(ui, tl!("Default"), enabled, language == Some(None)) {
+        format(app, json!({"language": "default"}));
+    }
+    for (name, tag) in vectorcraft_doc::setup::LANGUAGE_TAGS {
+        if menu_item(ui, tl!(name), enabled, language.as_ref().is_some_and(|l| l.as_deref() == Some(*tag))) {
+            format(app, json!({"language": tag}));
+        }
+    }
 }
 
 /// Reset Panel: the characters the panel acts on ([`char_cmd`]) take tracking 0, Auto leading and

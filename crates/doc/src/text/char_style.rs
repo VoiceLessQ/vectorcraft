@@ -111,6 +111,10 @@ pub struct CharStyle {
     /// <https://helpx.adobe.com/illustrator/using/hyphenation-line-breaks.html>
     #[serde(default, rename = "noBreak", skip_serializing_if = "crate::skip::is_default")]
     pub no_break: bool,
+    /// Language (Character panel menu): the BCP 47 tag these characters are shaped in, so a font
+    /// draws its forms for that language (OpenType `locl`). `None`: no language.
+    #[serde(default, skip_serializing_if = "crate::skip::is_default")]
+    pub language: Option<String>,
 }
 
 /// The numeral system digits are drawn in ([`CharStyle::digits`]): as typed, or every digit of
@@ -293,6 +297,7 @@ impl Default for CharStyle {
             small_caps: None,
             digits: Digits::Default,
             no_break: false,
+            language: None,
         }
     }
 }

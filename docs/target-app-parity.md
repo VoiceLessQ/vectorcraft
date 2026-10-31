@@ -1,6 +1,6 @@
 # Parity with Adobe Illustrator
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-31 · **Change:** minor (New Document: Save Preset in More Settings, #4893; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-31 · **Change:** minor (Text is shaped in its language, #4940; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
 
 ## Feature submission evidence
 
@@ -19,6 +19,7 @@ Artboard Options forwards the active Artboard tool's Scale Artwork with Artboard
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-31 | minor | Type core: text is shaped in its language (#4940), set per character from the Character panel or new text's Document Setup language, so a font's `locl` forms apply; scores unchanged. |
 | 2026-10-31 | minor | Object › Path › Smooth smooths a path along its length before refitting it, so Auto-Smooth takes a shaky line to one smooth curve instead of leaving its jags, and with anchor points direct-selected it smooths only that section; scores unchanged. |
 | 2026-10-31 | minor | New Document: More Settings has the Save Preset button beside the name too, saving its settings (artboard layout included) as a preset (#4893); scores unchanged. |
 | 2026-10-31 | minor | Object › Rasterize in a CMYK document with its CMYK colour model makes a CMYK image of the art's ink amounts (as CMYK exports draw them), so the Properties panel says CMYK and CMYK exports keep its inks; a transparent background becomes the image's opacity mask (#4882); scores unchanged. |
