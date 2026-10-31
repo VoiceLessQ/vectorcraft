@@ -523,6 +523,33 @@ fn language_checks_the_language_of_the_selection() {
     assert_eq!(checked(&mut app), ["Default"]);
     app.run("text.setFormat", json!({"language": "tr"})).unwrap();
     assert_eq!(checked(&mut app), ["Turkish"]);
+    // A tag's case doesn't make it another language, in one tag or across a selection.
+    app.run("text.setFormat", json!({"language": "TR"})).unwrap();
+    assert_eq!(checked(&mut app), ["Turkish"]);
+    app.run("text.setRangeStyle", json!({"id": id, "start": 0, "end": 2, "language": "tr"})).unwrap();
+    assert_eq!(checked(&mut app), ["Turkish"]);
+    app.run("text.setRangeStyle", json!({"id": id, "start": 0, "end": 2, "language": "de"})).unwrap();
+    assert!(checked(&mut app).is_empty(), "the characters differ");
+}
+
+/// Reset Panel gives text the language new text has: none, or the document's.
+#[test]
+fn reset_panel_resets_the_language_to_the_one_of_new_text() {
+    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    app.run("file.new", json!({"width": 300, "height": 200})).unwrap();
+    let id = app.run("text.create", json!({"x": 20, "y": 50, "text": "fikir"})).unwrap()["id"].as_u64().unwrap();
+    app.run("select.set", json!({"ids": [id]})).unwrap();
+    let language = |app: &VectorcraftApp| match &app.session.active().unwrap().doc.node(NodeId(id)).unwrap().kind {
+        NodeKind::Text(t) => t.runs[0].style.language.clone(),
+        _ => panic!("text"),
+    };
+    app.run("text.setFormat", json!({"language": "fr"})).unwrap();
+    reset_panel(&mut app);
+    assert_eq!(language(&app), None);
+    app.run("document.setup", json!({"language": "Turkish"})).unwrap();
+    app.run("text.setFormat", json!({"language": "fr"})).unwrap();
+    reset_panel(&mut app);
+    assert_eq!(language(&app).as_deref(), Some("tr"));
 }
 
 /// Character Direction is in the panel menu with the Middle Eastern (Indic) options, beside

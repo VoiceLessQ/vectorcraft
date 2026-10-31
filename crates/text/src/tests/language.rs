@@ -40,3 +40,17 @@ fn a_tag_that_is_no_tag_shapes_without_a_language() {
         assert_eq!(gids(&point("fi", in_language(Some(bad)))), plain, "{bad:.8}");
     }
 }
+
+#[test]
+fn a_tag_s_case_is_no_shaping_boundary() {
+    // Runs that shape alike keep the font's kerning across their boundary.
+    let advance = |t: &TextObject| layout(db(), t).glyphs.first().unwrap().advance;
+    let mut same = point("A", in_language(Some("en-GB")));
+    same.runs.push(TextRun::new("V", in_language(Some("en-GB"))));
+    let mut case = point("A", in_language(Some("en-GB")));
+    case.runs.push(TextRun::new("V", in_language(Some("en-gb"))));
+    let mut other = point("A", in_language(Some("en-GB")));
+    other.runs.push(TextRun::new("V", in_language(Some("tr"))));
+    assert!(advance(&same) < advance(&other), "the pair is kerned, and a language change ends it");
+    assert_eq!(advance(&case), advance(&same));
+}

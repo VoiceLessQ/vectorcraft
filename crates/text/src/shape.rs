@@ -507,7 +507,7 @@ fn shapes_alike(a: &CharStyle, b: &CharStyle) -> bool {
         && *font_style == b.font_style
         && *font_version == b.font_version
         && *font_axes == b.font_axes
-        && *language == b.language
+        && language.as_deref().unwrap_or_default().eq_ignore_ascii_case(b.language.as_deref().unwrap_or_default())
         && *size == b.size
         && *h_scale == b.h_scale
         && *v_scale == b.v_scale

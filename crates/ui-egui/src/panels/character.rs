@@ -1101,13 +1101,14 @@ fn fractional_widths_on(app: &VectorcraftApp) -> bool {
 /// [`char_direction_items`], the language the characters share is checked, and a caret with no
 /// characters selected disables the items.
 fn language_items(app: &mut VectorcraftApp, ui: &mut Ui) {
-    let language = shared(app, |s| s.language.clone());
+    // A tag's case doesn't make it another language.
+    let language = shared(app, |s| s.language.as_ref().map(|l| l.to_ascii_lowercase()));
     let enabled = text_editing(app).is_none_or(|(_, a, b)| b > a);
     if menu_item(ui, tl!("Default"), enabled, language == Some(None)) {
         format(app, json!({"language": "default"}));
     }
     for (name, tag) in vectorcraft_doc::setup::LANGUAGE_TAGS {
-        if menu_item(ui, tl!(name), enabled, language.as_ref().is_some_and(|l| l.as_deref() == Some(*tag))) {
+        if menu_item(ui, tl!(name), enabled, language.as_ref().is_some_and(|l| l.as_deref().is_some_and(|l| l.eq_ignore_ascii_case(tag)))) {
             format(app, json!({"language": tag}));
         }
     }
@@ -1118,9 +1119,10 @@ fn language_items(app: &mut VectorcraftApp, ui: &mut Ui) {
 /// and Small Caps off, the normal position (neither superscript nor subscript), Roman Baseline
 /// character alignment, Proportional Metrics, Tate-chu-yoko and No Break off, the Default character
 /// direction and the Default digits, whether or not Show East Asian Options and Show Indic Options
-/// are on.
+/// are on, and the language new text has.
 fn reset_panel(app: &mut VectorcraftApp) {
     let d = CharStyle::default();
+    let language = app.session.active().and_then(|st| st.doc.setup.new_text_language()).unwrap_or_else(|| "default".into());
     style(app, json!({"tracking": 0, "leading": "auto"}));
     format(
         app,
@@ -1128,7 +1130,7 @@ fn reset_panel(app: &mut VectorcraftApp) {
             "kerning": "auto", "baselineShift": 0, "hScale": 100, "vScale": 100, "rotation": 0, "underline": false, "strikethrough": false,
             "allCaps": false, "smallCaps": d.small_caps.is_some(), "position": d.position.id(), "charAlign": d.char_align,
             "proportionalMetrics": d.proportional_metrics, "tateChuYoko": d.tate_chu_yoko, "noBreak": d.no_break, "charDirection": "default",
-            "digits": d.digits
+            "digits": d.digits, "language": language
         }),
     );
 }

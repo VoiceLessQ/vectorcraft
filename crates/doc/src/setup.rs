@@ -193,9 +193,10 @@ pub const LANGUAGE_TAGS: &[(&str, &str)] = &[
 ];
 
 /// Whether `tag` has the form of a BCP 47 tag: letters first, then subtags of letters and digits,
-/// joined by hyphens. Tags come from files, so length is bounded too.
+/// joined by hyphens, and no one-letter subtag last. Tags come from files, so length is bounded too.
 pub fn is_language_tag(tag: &str) -> bool {
     tag.len() <= 35
+        && tag.rsplit('-').next().is_some_and(|last| last.len() > 1)
         && tag.split('-').enumerate().all(|(i, sub)| {
             if i == 0 {
                 (2..=8).contains(&sub.len()) && sub.bytes().all(|b| b.is_ascii_alphabetic())
@@ -364,6 +365,17 @@ impl DocSetup {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn language_tags_are_read_by_their_form() {
+        for tag in ["tr", "en-US", "zh-Hant-TW", "sr-Cyrl", "de-1996", "tr-u-ca-gregory"] {
+            assert!(is_language_tag(tag), "{tag}");
+        }
+        for tag in ["", "t", "-", "tr-", "-tr", "tr--tr", "tr_TR", "tr tr", "1a", "tr-x", "de-CH-a", "abcdefghi"] {
+            assert!(!is_language_tag(tag), "{tag}");
+        }
+        assert!(!is_language_tag(&format!("tr{}", "-abc".repeat(12))));
+    }
 
     #[test]
     fn every_language_has_a_tag() {
